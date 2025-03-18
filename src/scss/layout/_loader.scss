@@ -1,0 +1,190 @@
+@use 'base/variables' as v;
+@use 'base/mixins' as m;
+
+body.glass-active {
+    overflow: hidden;
+
+    .glass-overlay {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: all;
+    }
+}
+
+.glass-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(1rem);
+    -webkit-backdrop-filter: blur(1rem);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none;
+    user-select: none;
+    touch-action: none;
+
+    .ui-abstergo {
+        --primary: #fff;
+        --secondary: rgba(255, 255, 255, 0.3);
+        --shadow-blur: 0.3rem;
+        --text-shadow-blur: 0.3rem;
+        --animation-duration: 2s;
+        --size: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 3rem;
+        scale: var(--size);
+
+        .ui-text {
+            color: var(--primary);
+            text-shadow: 0 0 var(--text-shadow-blur) var(--secondary);
+            font-family: Menlo, sans-serif;
+            display: flex;
+            align-items: baseline;
+            column-gap: 0.3rem;
+        }
+
+        .ui-dot {
+            content: "";
+            display: block;
+            width: 0.3rem;
+            height: 0.3rem;
+            animation: dots var(--animation-duration) infinite linear;
+            animation-delay: 0.4s;
+            background-color: var(--primary);
+
+            &:nth-child(2) {
+                animation-delay: 0.8s;
+            }
+
+            &:nth-child(3) {
+                animation-delay: 1.2s;
+            }
+
+            & + .ui-dot {
+                margin-left: 0.3rem;
+            }
+        }
+    }
+
+    .abstergo-loader {
+        width: 10.3rem;
+        height: 9rem;
+        position: relative;
+
+        * {
+            -webkit-box-sizing: content-box;
+            box-sizing: content-box;
+        }
+
+        div {
+            width: 5rem;
+            border-right: 1.2rem solid transparent;
+            border-left: 1.2rem solid transparent;
+            border-top: 2.1rem solid var(--primary);
+            position: absolute;
+            filter: drop-shadow(0 0 var(--shadow-blur) var(--secondary));
+
+            &:nth-child(1) {
+                top: 2.7rem;
+                left: 0.7rem;
+                rotate: -60deg;
+                animation: line1 var(--animation-duration) linear infinite alternate;
+            }
+
+            &:nth-child(2) {
+                bottom: 0.2rem;
+                left: 0;
+                rotate: 180deg;
+                animation: line2 var(--animation-duration) linear infinite alternate;
+            }
+
+            &:nth-child(3) {
+                bottom: 1.6rem;
+                right: -0.9rem;
+                rotate: 60deg;
+                animation: line3 var(--animation-duration) linear infinite alternate;
+            }
+        }
+
+        &:hover {
+            div:nth-child(1) {
+                top: 2.1rem;
+                left: 1.4rem;
+                rotate: 60deg;
+            }
+
+            div:nth-child(2) {
+                bottom: 0.5rem;
+                left: -0.8rem;
+                rotate: 300deg;
+            }
+
+            div:nth-child(3) {
+                bottom: 0.7rem;
+                right: -1.1rem;
+                rotate: 180deg;
+            }
+        }
+    }
+
+    @keyframes line1 {
+        0%, 40% {
+            top: 2.7rem;
+            left: 0.7rem;
+            rotate: -60deg;
+        }
+        60%, 100% {
+            top: 2.2rem;
+            left: 1.4rem;
+            rotate: 60deg;
+        }
+    }
+
+    @keyframes line2 {
+        0%, 40% {
+            bottom: 0.2rem;
+            left: 0;
+            rotate: 180deg;
+        }
+        60%, 100% {
+            bottom: 0.5rem;
+            left: -0.8rem;
+            rotate: 300deg;
+        }
+    }
+
+    @keyframes line3 {
+        0%, 40% {
+            bottom: 1.6rem;
+            right: -0.9rem;
+            rotate: 60deg;
+        }
+        60%, 100% {
+            bottom: 0.7rem;
+            right: -1.1rem;
+            rotate: 180deg;
+        }
+    }
+
+    @keyframes dots {
+        0% {
+            background-color: var(--secondary);
+        }
+        30% {
+            background-color: var(--primary);
+        }
+        70%, 100% {
+            background-color: var(--secondary);
+        }
+    }
+}

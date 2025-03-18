@@ -1,0 +1,118 @@
+// Conseguir datos de login:
+
+DELIMITER //
+
+CREATE FUNCTION validar_login(
+    p_username VARCHAR(16), 
+    p_password VARCHAR(40), 
+    p_store_id TINYINT
+) RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    DECLARE hashed_password VARCHAR(40);
+    DECLARE user_count INT;
+
+    -- Obtener el hash de la contraseña ingresada
+    SET hashed_password = SHA1(p_password);
+
+    -- Verificar si existe un usuario con esas credenciales en la tienda especificada
+    SELECT COUNT(*) INTO user_count
+    FROM staff
+    WHERE username = p_username 
+      AND password = hashed_password
+      AND store_id = p_store_id;
+
+    -- Si user_count es 1, las credenciales son correctas, de lo contrario no
+    RETURN user_count = 1;
+END //
+
+DELIMITER ;
+
+
+// Conseguir películas (nombre, año y categoría)
+
+DELIMITER //
+
+CREATE FUNCTION obtener_peliculas_por_tienda(p_store_id TINYINT)
+RETURNS LONGTEXT
+DETERMINISTIC
+BEGIN
+    DECLARE resultado LONGTEXT DEFAULT '[]';
+
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'film_id', f.film_id,
+            'titulo', f.title,
+            'año', f.release_year,
+            'género', c.name
+        )
+    ) INTO resultado
+    FROM film f
+    JOIN inventory i ON f.film_id = i.film_id
+    JOIN film_category fc ON f.film_id = fc.film_id
+    JOIN category c ON fc.category_id = c.category_id
+    WHERE i.store_id = p_store_id
+    ORDER BY f.release_year DESC;
+
+    RETURN COALESCE(resultado, '[]');
+END //
+
+DELIMITER ;
+
+
+// Obtener todas las rentas de la tienda
+
+DELIMITER //
+
+CREATE FUNCTION obtener_rentas_por_tienda(p_store_id TINYINT)
+RETURNS LONGTEXT
+DETERMINISTIC
+BEGIN
+    DECLARE resultado LONGTEXT DEFAULT '[]';
+
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'rental_id', r.rental_id,
+            'pelicula', f.title,
+            'cliente', CONCAT(c.first_name, ' ', c.last_name),
+            'fecha_renta', r.rental_date
+        )
+    ) INTO resultado
+    FROM rental r
+    JOIN inventory i ON r.inventory_id = i.inventory_id
+    JOIN film f ON i.film_id = f.film_id
+    JOIN customer c ON r.customer_id = c.customer_id
+    WHERE i.store_id = p_store_id
+    ORDER BY r.rental_date DESC;
+
+    RETURN COALESCE(resultado, '[]');
+END //
+
+DELIMITER ;
+
+// Obtener todos los empleados de la tienda
+
+DELIMITER //
+
+CREATE FUNCTION obtener_empleados_por_tienda(p_store_id TINYINT)
+RETURNS LONGTEXT
+DETERMINISTIC
+BEGIN
+    DECLARE resultado LONGTEXT DEFAULT '[]';
+
+    SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+            'empleado_id', s.staff_id,
+            'nombre', CONCAT(s.first_name, ' ', s.last_name),
+            'correo', s.email,
+            'usuario', s.username
+        )
+    ) INTO resultado
+    FROM staff s
+    WHERE s.store_id = p_store_id
+    ORDER BY s.first_name;
+
+    RETURN COALESCE(resultado, '[]');
+END //
+
+DELIMITER ;

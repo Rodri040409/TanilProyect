@@ -1,0 +1,80 @@
+@use 'base/variables' as v;
+@use 'base/mixins' as m;
+
+.logOutContent {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    margin: 1rem 0 1rem 1rem;
+
+    .logOut {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 4.5rem;
+        height: 4.5rem;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition-duration: 0.3s;
+        box-shadow: 0.2rem 0.2rem 1rem rgba(0, 0, 0, 0.199);
+        background-color: rgb(255, 65, 65);
+        outline: none;
+
+        .sign {
+            width: 100%;
+            transition-duration: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            svg {
+                width: 1.7rem;
+
+                path {
+                    fill: white;
+                }
+            }
+        }
+
+        .text {
+            position: absolute;
+            right: 0%;
+            width: 0%;
+            opacity: 0;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            transition-duration: 0.3s;
+        }
+
+        &:hover,
+        &:focus-within,
+        &:active {
+            width: 12.5rem;
+            border-radius: 4rem;
+            transition-duration: 0.3s;
+
+            .sign {
+                width: 30%;
+                transition-duration: 0.3s;
+                padding-left: 2rem;
+            }
+
+            .text {
+                opacity: 1;
+                width: 70%;
+                transition-duration: 0.3s;
+                padding-right: 1rem;
+            }
+        }
+
+        &:active {
+            transform: translate(0.2rem, 0.2rem);
+        }
+    }
+}
