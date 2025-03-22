@@ -2,7 +2,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import connection from "./db.js";
 import { RowDataPacket } from "mysql2"; // ✅ Importar RowDataPacket
 
-// 🔹 Obtener Películas
+// 🔹 Obtener Películas por tienda
 export function obtenerPeliculas(req: IncomingMessage, res: ServerResponse) {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const storeId = url.searchParams.get("store_id");
@@ -37,7 +37,7 @@ export function obtenerPeliculas(req: IncomingMessage, res: ServerResponse) {
     });
 }
 
-// 🔹 Obtener Rentas
+// 🔹 Obtener Rentas por tienda
 export function obtenerRentas(req: IncomingMessage, res: ServerResponse) {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const storeId = url.searchParams.get("store_id");
@@ -72,7 +72,7 @@ export function obtenerRentas(req: IncomingMessage, res: ServerResponse) {
     });
 }
 
-// 🔹 Obtener Empleados
+// 🔹 Obtener Empleados por tienda
 export function obtenerEmpleados(req: IncomingMessage, res: ServerResponse) {
     const url = new URL(req.url!, `http://${req.headers.host}`);
     const storeId = url.searchParams.get("store_id");
@@ -104,5 +104,54 @@ export function obtenerEmpleados(req: IncomingMessage, res: ServerResponse) {
 
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ success: true, empleados }));
+    });
+}
+
+// 🔹 Obtener detalles completos antes de eliminar
+export function obtenerDetallesAntesDeEliminar(req: IncomingMessage, res: ServerResponse) {
+    const url = new URL(req.url!, `http://${req.headers.host}`);
+    const tipo = url.searchParams.get("tipo");
+    const id = url.searchParams.get("id");
+
+    if (!tipo || !id) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: false, message: "Faltan parámetros (tipo, id)" }));
+        return;
+    }
+
+    let query = "";
+    switch (tipo) {
+        case "pelicula":
+            query = `CALL obtener_pelicula(?)`;
+            break;
+        case "renta":
+            query = `CALL obtener_renta(?)`;
+            break;
+        case "empleado":
+            query = `CALL obtener_empleado(?)`;
+            break;
+        default:
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, message: "Tipo de consulta no válido" }));
+            return;
+    }
+
+    connection.query<RowDataPacket[][]>(query, [id], (err, results) => {
+        if (err) {
+            console.error("❌ Error en la consulta:", err);
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, message: "Error al obtener detalles" }));
+            return;
+        }
+
+        // ✅ Validar que results tiene datos
+        if (!Array.isArray(results) || results.length === 0 || results[0].length === 0) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, message: "Elemento no encontrado" }));
+            return;
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, detalles: results[0][0] }));
     });
 }

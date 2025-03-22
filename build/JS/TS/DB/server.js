@@ -1,23 +1,24 @@
 import http from "http";
 import { handleLogin } from "./credenciales.js";
-import { obtenerPeliculas, obtenerRentas, obtenerEmpleados } from "./obtener.js";
+import { obtenerPeliculas, obtenerRentas, obtenerEmpleados, obtenerDetallesAntesDeEliminar } from "./obtener.js";
+import { eliminarElemento } from "./eliminar.js";
 console.log("🚀 Servidor iniciando...");
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 4000;
 const HOST = "0.0.0.0";
 const server = http.createServer((req, res) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     console.log(`📌 Solicitud recibida: ${req.method} ${req.url}`);
     if (req.method === "OPTIONS") {
         res.writeHead(204, {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         });
         res.end();
         return;
     }
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (req.method === "POST" && req.url === "/login") {
         handleLogin(req, res);
@@ -30,6 +31,12 @@ const server = http.createServer((req, res) => {
     }
     else if (req.method === "GET" && ((_c = req.url) === null || _c === void 0 ? void 0 : _c.startsWith("/empleados"))) {
         obtenerEmpleados(req, res);
+    }
+    else if (req.method === "GET" && ((_d = req.url) === null || _d === void 0 ? void 0 : _d.startsWith("/detalles"))) {
+        obtenerDetallesAntesDeEliminar(req, res);
+    }
+    else if (req.method === "DELETE" && ((_e = req.url) === null || _e === void 0 ? void 0 : _e.startsWith("/eliminar"))) {
+        eliminarElemento(req, res);
     }
     else {
         res.writeHead(404, { "Content-Type": "application/json" });

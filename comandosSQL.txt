@@ -116,3 +116,125 @@ BEGIN
 END //
 
 DELIMITER ;
+
+// Comando para eliminar películas
+
+DELIMITER //
+
+CREATE PROCEDURE eliminar_pelicula(IN p_film_id INT, IN p_store_id INT)
+BEGIN
+    DECLARE rentas_existentes INT;
+
+    -- 1️⃣ Verificar si hay rentas activas en esta tienda
+    SELECT COUNT(*) INTO rentas_existentes
+    FROM rental
+    WHERE inventory_id IN (
+        SELECT inventory_id FROM inventory WHERE film_id = p_film_id AND store_id = p_store_id
+    );
+
+    IF rentas_existentes > 0 THEN
+        -- 🚨 Lanzar error si hay rentas activas
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'No se puede eliminar la película porque tiene rentas activas en esta tienda.';
+    ELSE
+        -- 2️⃣ Eliminar inventario SOLO de esta tienda
+        DELETE FROM inventory WHERE film_id = p_film_id AND store_id = p_store_id;
+
+        -- 3️⃣ Verificar si la película sigue en otras tiendas
+        IF NOT EXISTS (SELECT 1 FROM inventory WHERE film_id = p_film_id) THEN
+            -- 4️⃣ Si no hay más copias en ninguna tienda, eliminar la película completamente
+            DELETE FROM film_category WHERE film_id = p_film_id;
+            DELETE FROM film WHERE film_id = p_film_id;
+        END IF;
+    END IF;
+END //
+
+DELIMITER ;
+
+
+
+// Eliminar una renta
+
+DELIMITER //
+
+CREATE PROCEDURE eliminar_renta(IN p_rental_id INT, IN p_store_id TINYINT)
+BEGIN
+    -- Eliminar pagos relacionados con la renta
+    DELETE FROM payment WHERE rental_id = p_rental_id;
+
+    -- Eliminar la renta asegurando que pertenece a la tienda
+    DELETE FROM rental WHERE rental_id = p_rental_id 
+    AND inventory_id IN (SELECT inventory_id FROM inventory WHERE store_id = p_store_id);
+END //
+
+DELIMITER ;
+
+// Eliminar un empleado
+
+DELIMITER //
+
+CREATE PROCEDURE eliminar_empleado(IN p_staff_id TINYINT, IN p_store_id TINYINT)
+BEGIN
+    -- Eliminar pagos registrados por el empleado
+    DELETE FROM payment WHERE staff_id = p_staff_id;
+
+    -- Eliminar rentas gestionadas por el empleado
+    DELETE FROM rental WHERE staff_id = p_staff_id;
+
+    -- Eliminar al empleado, asegurando que pertenece a la tienda
+    DELETE FROM staff WHERE staff_id = p_staff_id AND store_id = p_store_id;
+END //
+
+DELIMITER ;
+
+// Obtener todos los datos de las películas:
+
+DELIMITER //
+
+CREATE PROCEDURE obtener_pelicula(IN p_film_id INT)
+BEGIN
+    SELECT
+        f.film_id, f.title, f.description, f.release_year,
+        l.name AS language, f.rental_duration, f.rental_rate,
+        f.length, f.replacement_cost, f.rating, f.special_features,
+        COUNT(i.inventory_id) AS inventory_count
+    FROM film f
+    LEFT JOIN language l ON f.language_id = l.language_id
+    LEFT JOIN inventory i ON f.film_id = i.film_id
+    WHERE f.film_id = p_film_id
+    GROUP BY f.film_id;
+END //
+
+DELIMITER ;
+
+
+
+// Obtener todos los datos de las rentas:
+
+DELIMITER //
+
+CREATE PROCEDURE obtener_renta(IN p_rental_id INT)
+BEGIN
+    SELECT r.rental_id, f.title AS pelicula, c.first_name AS cliente, r.rental_date
+    FROM rental r
+    JOIN inventory i ON r.inventory_id = i.inventory_id
+    JOIN film f ON i.film_id = f.film_id
+    JOIN customer c ON r.customer_id = c.customer_id
+    WHERE r.rental_id = p_rental_id;
+END //
+
+DELIMITER ;
+
+
+// Obtener todos los datos del empleado:
+
+DELIMITER //
+
+CREATE PROCEDURE obtener_empleado(IN p_staff_id INT)
+BEGIN
+    SELECT staff_id, first_name, last_name, email, username
+    FROM staff
+    WHERE staff_id = p_staff_id;
+END //
+
+DELIMITER ;

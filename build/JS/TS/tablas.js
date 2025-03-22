@@ -10,15 +10,21 @@ export function createTablas(tipo = "Películas") {
     let endpoint = "peliculas";
     let columnas = ["Título", "Año", "Género"];
     let keys = ["titulo", "año", "género"];
+    let tipoElemento = "pelicula";
+    let idKey = "film_id";
     if (tipo === "Rentas") {
         endpoint = "rentas";
         columnas = ["Película", "Cliente", "Fecha Renta"];
         keys = ["pelicula", "cliente", "fecha_renta"];
+        tipoElemento = "renta";
+        idKey = "rental_id";
     }
     else if (tipo === "Empleados") {
         endpoint = "empleados";
         columnas = ["Nombre", "Correo", "Usuario"];
         keys = ["nombre", "correo", "usuario"];
+        tipoElemento = "empleado";
+        idKey = "staff_id";
     }
     fetch(`http://localhost:4000/${endpoint}?store_id=${storeId}`)
         .then(response => response.json())
@@ -27,7 +33,6 @@ export function createTablas(tipo = "Películas") {
             console.error(`❌ Error al obtener ${tipo}:`, data.message);
             return;
         }
-        console.log(`✅ ${tipo} obtenidos:`, data[endpoint]);
         tablas.innerHTML = "";
         if (data[endpoint].length === 0) {
             tablas.innerHTML = `<p class="no-datos">No hay datos disponibles para ${tipo}.</p>`;
@@ -37,6 +42,11 @@ export function createTablas(tipo = "Películas") {
             var _a, _b, _c;
             const card = document.createElement("div");
             card.classList.add("card");
+            const id = item[idKey];
+            if (!id) {
+                console.error(`❌ Error: No se encontró un ID válido para ${tipo}.`);
+                return;
+            }
             card.innerHTML = `
 
                         <div class="card">
@@ -55,7 +65,7 @@ export function createTablas(tipo = "Películas") {
                             </div>
 
                             <div class="actions">
-                                <button class="button delete" type="button">
+                                <button class="button delete" data-id="${id}" data-tipo="${tipoElemento}">
                                     <span class="button__text">Delete</span>
                                     <span class="button__icon"
                                     ><svg
@@ -119,6 +129,45 @@ export function createTablas(tipo = "Películas") {
                             </div>
                         </div>
                 `;
+            const deleteButton = card.querySelector(".delete");
+            deleteButton.addEventListener("click", () => {
+                fetch(`http://localhost:4000/detalles?tipo=${tipoElemento}&id=${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                    if (!data.success) {
+                        alert("❌ No se pudieron obtener los detalles.");
+                        return;
+                    }
+                    const d = data.detalles;
+                    let mensaje = `⚠️ ¿Seguro que deseas eliminar esta ${tipo}?\n\n` +
+                        `🎬 Título: ${d.title}\n📅 Año: ${d.release_year}\n` +
+                        `📜 Descripción: ${d.description}\n🌍 Idioma: ${d.language}\n` +
+                        `💰 Renta: $${d.rental_rate}\n⭐ Rating: ${d.rating}\n` +
+                        `🏷️ Duración de renta: ${d.rental_duration} días\n` +
+                        `🎥 Duración: ${d.length} min\n📀 Costo de reemplazo: $${d.replacement_cost}\n` +
+                        `📦 Inventario total: ${d.inventory_count}\n📌 Categoría: ${d.category}\n` +
+                        `✨ Características especiales: ${d.special_features}`;
+                    if (confirm(mensaje)) {
+                        fetch(`http://localhost:4000/eliminar?tipo=${tipoElemento}&id=${id}&store_id=${storeId}`, {
+                            method: "DELETE",
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                            if (data.success) {
+                                alert("✅ Eliminado correctamente");
+                                location.reload();
+                            }
+                            else {
+                                alert("❌ Error al eliminar");
+                            }
+                        })
+                            .catch((error) => console.error("❌ Error:", error));
+                    }
+                })
+                    .catch(error => {
+                    console.error("❌ Error al obtener detalles:", error);
+                });
+            });
             tablas.appendChild(card);
         });
     })

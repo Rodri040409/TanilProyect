@@ -1,6 +1,7 @@
 import http from "http";
 import { handleLogin } from "./credenciales.js";
-import { obtenerPeliculas, obtenerRentas, obtenerEmpleados } from "./obtener.js";
+import { obtenerPeliculas, obtenerRentas, obtenerEmpleados, obtenerDetallesAntesDeEliminar } from "./obtener.js"; 
+import { eliminarElemento } from "./eliminar.js"; 
 
 console.log("🚀 Servidor iniciando...");
 
@@ -16,7 +17,7 @@ const server = http.createServer((req, res) => {
     if (req.method === "OPTIONS") {
         res.writeHead(204, {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         });
         res.end();
@@ -25,7 +26,7 @@ const server = http.createServer((req, res) => {
 
     // 🔹 Agregar CORS a todas las respuestas
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
     // 🔹 Rutas disponibles
@@ -37,6 +38,10 @@ const server = http.createServer((req, res) => {
         obtenerRentas(req, res); // ✅ Obtener rentas
     } else if (req.method === "GET" && req.url?.startsWith("/empleados")) {  
         obtenerEmpleados(req, res); // ✅ Obtener empleados
+    } else if (req.method === "GET" && req.url?.startsWith("/detalles")) {  
+        obtenerDetallesAntesDeEliminar(req, res); // ✅ Obtener detalles antes de eliminar
+    } else if (req.method === "DELETE" && req.url?.startsWith("/eliminar")) {  
+        eliminarElemento(req, res); // ✅ Manejar eliminaciones
     } else {
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ success: false, message: "Ruta no encontrada" }));
