@@ -14,14 +14,14 @@ const server = http.createServer((req, res) => {
     if (req.method === "OPTIONS") {
         res.writeHead(204, {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         });
         res.end();
         return;
     }
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (req.method === "POST" && req.url === "/login") {
         handleLogin(req, res);

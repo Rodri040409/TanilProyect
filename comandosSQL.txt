@@ -222,6 +222,8 @@ DELIMITER ;
 
 // Obtener todos los datos de las rentas:
 
+DELIMITER //
+
 CREATE PROCEDURE obtener_renta(IN p_rental_id INT)
 BEGIN
     SELECT 
@@ -237,6 +239,8 @@ BEGIN
         s.last_name AS empleado_apellido,
         s.username AS usuario_empleado,
         st.store_id,
+        c.customer_id,  -- Aquí agregamos el customer_id
+        s.staff_id,     -- Aquí agregamos el staff_id
         COALESCE(SUM(p.amount), 0) AS monto_total_pagado
     FROM rental r
     JOIN inventory i ON r.inventory_id = i.inventory_id
@@ -250,7 +254,6 @@ BEGIN
 END //
 
 DELIMITER ;
-
 
 
 // Obtener todos los datos del empleado:
@@ -354,6 +357,30 @@ DELIMITER ;
 
 DELIMITER //
 
+CREATE FUNCTION actualizar_cliente(
+    p_customer_id INT,
+    p_first_name TEXT,
+    p_last_name TEXT,
+    p_email TEXT
+)
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    UPDATE customer SET
+        first_name = IFNULL(p_first_name, first_name),
+        last_name = IFNULL(p_last_name, last_name),
+        email = IFNULL(p_email, email)
+    WHERE customer_id = p_customer_id;
+
+    RETURN TRUE;
+END;
+//
+DELIMITER ;
+
+// Actualizar empleado
+
+DELIMITER //
+
 CREATE FUNCTION actualizar_empleado(
     p_staff_id INT,
     p_first_name TEXT,
@@ -364,7 +391,7 @@ CREATE FUNCTION actualizar_empleado(
 RETURNS BOOLEAN
 DETERMINISTIC
 BEGIN
-    UPDATE empleado SET
+    UPDATE staff SET
         first_name = IFNULL(p_first_name, first_name),
         last_name = IFNULL(p_last_name, last_name),
         email = IFNULL(p_email, email),

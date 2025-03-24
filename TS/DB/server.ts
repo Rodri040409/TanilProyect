@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
     if (req.method === "OPTIONS") {
         res.writeHead(204, {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+            "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type",
         });
         res.end();
@@ -31,10 +31,9 @@ const server = http.createServer((req, res) => {
     }
 
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    // 🔹 RUTAS PARA LISTADOS (frontend espera estas rutas)
     if (req.method === "POST" && req.url === "/login") {
         handleLogin(req, res);
     } else if (req.method === "GET" && req.url?.startsWith("/peliculas")) {
@@ -45,10 +44,7 @@ const server = http.createServer((req, res) => {
         obtenerEmpleados(req, res);
     } else if (req.method === "PATCH" && req.url === "/actualizar") {
         actualizarElemento(req, res);
-    }
-
-    // 🔹 RUTAS DETALLADAS (para mostrar en alertas antes de eliminar)
-    else if (req.method === "GET" && req.url?.startsWith("/pelicula")) {
+    } else if (req.method === "GET" && req.url?.startsWith("/pelicula")) {
         const urlObj = new URL(req.url, `http://${req.headers.host}`);
         const filmId = parseInt(urlObj.searchParams.get("film_id") || "");
 
@@ -76,9 +72,7 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({ success: true, pelicula }));
             }
         });
-    }
-
-    else if (req.method === "GET" && req.url?.startsWith("/renta")) {
+    } else if (req.method === "GET" && req.url?.startsWith("/renta")) {
         const urlObj = new URL(req.url, `http://${req.headers.host}`);
         const rentalId = parseInt(urlObj.searchParams.get("rental_id") || "");
 
@@ -106,9 +100,7 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({ success: true, renta }));
             }
         });
-    }
-
-    else if (req.method === "GET" && req.url?.startsWith("/empleado")) {
+    } else if (req.method === "GET" && req.url?.startsWith("/empleado")) {
         const urlObj = new URL(req.url, `http://${req.headers.host}`);
         const staffId = parseInt(urlObj.searchParams.get("staff_id") || "");
 
@@ -136,10 +128,7 @@ const server = http.createServer((req, res) => {
                 res.end(JSON.stringify({ success: true, empleado }));
             }
         });
-    }
-
-    // 🔹 Resto de rutas
-    else if (req.method === "GET" && req.url?.startsWith("/detalles")) {
+    } else if (req.method === "GET" && req.url?.startsWith("/detalles")) {
         obtenerDetallesAntesDeEliminar(req, res);
     } else if (req.method === "DELETE" && req.url?.startsWith("/eliminar")) {
         eliminarElemento(req, res);
