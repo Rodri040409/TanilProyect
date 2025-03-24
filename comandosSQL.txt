@@ -102,7 +102,7 @@ BEGIN
 
     SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
-            'empleado_id', s.staff_id,
+            'staff_id', s.staff_id,
             'nombre', CONCAT(s.first_name, ' ', s.last_name),
             'correo', s.email,
             'usuario', s.username
@@ -133,17 +133,17 @@ BEGIN
     );
 
     IF rentas_existentes > 0 THEN
-        -- 🚨 Lanzar error si hay rentas activas
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'No se puede eliminar la película porque tiene rentas activas en esta tienda.';
     ELSE
-        -- 2️⃣ Eliminar inventario SOLO de esta tienda
+        -- 2️⃣ Eliminar inventario de esta tienda
         DELETE FROM inventory WHERE film_id = p_film_id AND store_id = p_store_id;
 
-        -- 3️⃣ Verificar si la película sigue en otras tiendas
+        -- 3️⃣ Si ya no hay copias en ninguna tienda, eliminar totalmente
         IF NOT EXISTS (SELECT 1 FROM inventory WHERE film_id = p_film_id) THEN
-            -- 4️⃣ Si no hay más copias en ninguna tienda, eliminar la película completamente
             DELETE FROM film_category WHERE film_id = p_film_id;
+            DELETE FROM film_actor WHERE film_id = p_film_id;
+            DELETE FROM film_text WHERE film_id = p_film_id;
             DELETE FROM film WHERE film_id = p_film_id;
         END IF;
     END IF;
@@ -152,19 +152,22 @@ END //
 DELIMITER ;
 
 
-
 // Eliminar una renta
 
 DELIMITER //
 
 CREATE PROCEDURE eliminar_renta(IN p_rental_id INT, IN p_store_id TINYINT)
 BEGIN
-    -- Eliminar pagos relacionados con la renta
-    DELETE FROM payment WHERE rental_id = p_rental_id;
+    -- Eliminar pagos relacionados
+    DELETE FROM payment
+    WHERE rental_id = p_rental_id;
 
-    -- Eliminar la renta asegurando que pertenece a la tienda
-    DELETE FROM rental WHERE rental_id = p_rental_id 
-    AND inventory_id IN (SELECT inventory_id FROM inventory WHERE store_id = p_store_id);
+    -- Eliminar la renta solo si pertenece a esta tienda
+    DELETE FROM rental
+    WHERE rental_id = p_rental_id
+      AND inventory_id IN (
+          SELECT inventory_id FROM inventory WHERE store_id = p_store_id
+      );
 END //
 
 DELIMITER ;
@@ -175,14 +178,15 @@ DELIMITER //
 
 CREATE PROCEDURE eliminar_empleado(IN p_staff_id TINYINT, IN p_store_id TINYINT)
 BEGIN
-    -- Eliminar pagos registrados por el empleado
+    -- Eliminar pagos hechos por el empleado
     DELETE FROM payment WHERE staff_id = p_staff_id;
 
     -- Eliminar rentas gestionadas por el empleado
     DELETE FROM rental WHERE staff_id = p_staff_id;
 
-    -- Eliminar al empleado, asegurando que pertenece a la tienda
-    DELETE FROM staff WHERE staff_id = p_staff_id AND store_id = p_store_id;
+    -- Eliminar registros de este empleado (solo si es de esta tienda)
+    DELETE FROM staff
+    WHERE staff_id = p_staff_id AND store_id = p_store_id;
 END //
 
 DELIMITER ;
@@ -194,10 +198,18 @@ DELIMITER //
 CREATE PROCEDURE obtener_pelicula(IN p_film_id INT)
 BEGIN
     SELECT
-        f.film_id, f.title, f.description, f.release_year,
-        l.name AS language, f.rental_duration, f.rental_rate,
-        f.length, f.replacement_cost, f.rating, f.special_features,
-        COUNT(i.inventory_id) AS inventory_count
+        f.film_id,
+        f.title AS titulo,
+        f.description AS descripcion,
+        f.release_year AS año,
+        l.name AS idioma,
+        f.rental_duration AS duracion_renta,
+        f.rental_rate AS renta,
+        f.length AS duracion,
+        f.replacement_cost AS costo_reemplazo,
+        f.rating,
+        f.special_features AS caracteristicas,
+        COUNT(i.inventory_id) AS inventario_total
     FROM film f
     LEFT JOIN language l ON f.language_id = l.language_id
     LEFT JOIN inventory i ON f.film_id = i.film_id
@@ -208,22 +220,37 @@ END //
 DELIMITER ;
 
 
-
 // Obtener todos los datos de las rentas:
-
-DELIMITER //
 
 CREATE PROCEDURE obtener_renta(IN p_rental_id INT)
 BEGIN
-    SELECT r.rental_id, f.title AS pelicula, c.first_name AS cliente, r.rental_date
+    SELECT 
+        r.rental_id,
+        r.rental_date,
+        r.return_date,
+        f.title AS pelicula,
+        f.release_year AS año_pelicula,
+        c.first_name AS nombre_cliente,
+        c.last_name AS apellido_cliente,
+        c.email AS email_cliente,
+        s.first_name AS empleado_nombre,
+        s.last_name AS empleado_apellido,
+        s.username AS usuario_empleado,
+        st.store_id,
+        COALESCE(SUM(p.amount), 0) AS monto_total_pagado
     FROM rental r
     JOIN inventory i ON r.inventory_id = i.inventory_id
     JOIN film f ON i.film_id = f.film_id
     JOIN customer c ON r.customer_id = c.customer_id
-    WHERE r.rental_id = p_rental_id;
+    JOIN staff s ON r.staff_id = s.staff_id
+    JOIN store st ON s.store_id = st.store_id
+    LEFT JOIN payment p ON r.rental_id = p.rental_id
+    WHERE r.rental_id = p_rental_id
+    GROUP BY r.rental_id;
 END //
 
 DELIMITER ;
+
 
 
 // Obtener todos los datos del empleado:
@@ -232,9 +259,120 @@ DELIMITER //
 
 CREATE PROCEDURE obtener_empleado(IN p_staff_id INT)
 BEGIN
-    SELECT staff_id, first_name, last_name, email, username
-    FROM staff
-    WHERE staff_id = p_staff_id;
+    SELECT 
+        s.staff_id,
+        s.first_name,
+        s.last_name,
+        s.username,
+        s.email,
+        s.active,
+        s.store_id,
+        s.last_update,
+        a.address,
+        a.address2,
+        a.district,
+        c.city,
+        co.country,
+        a.postal_code,
+        a.phone
+    FROM staff s
+    LEFT JOIN address a ON s.address_id = a.address_id
+    LEFT JOIN city c ON a.city_id = c.city_id
+    LEFT JOIN country co ON c.country_id = co.country_id
+    WHERE s.staff_id = p_staff_id;
 END //
+
+DELIMITER ;
+
+// Actualizar películas
+
+DELIMITER //
+
+CREATE FUNCTION actualizar_pelicula(
+    p_film_id INT,
+    p_titulo TEXT,
+    p_año INT,
+    p_genero TEXT,
+    p_descripcion TEXT,
+    p_idioma TEXT,
+    p_renta DECIMAL(10,2),
+    p_rating TEXT,
+    p_duracion_renta INT,
+    p_duracion INT,
+    p_costo_reemplazo DECIMAL(10,2),
+    p_inventario_total INT,
+    p_caracteristicas TEXT
+)
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    UPDATE pelicula SET
+        titulo = IFNULL(p_titulo, titulo),
+        año = IFNULL(p_año, año),
+        genero = IFNULL(p_genero, genero),
+        descripcion = IFNULL(p_descripcion, descripcion),
+        idioma = IFNULL(p_idioma, idioma),
+        renta = IFNULL(p_renta, renta),
+        rating = IFNULL(p_rating, rating),
+        duracion_renta = IFNULL(p_duracion_renta, duracion_renta),
+        duracion = IFNULL(p_duracion, duracion),
+        costo_reemplazo = IFNULL(p_costo_reemplazo, costo_reemplazo),
+        inventario_total = IFNULL(p_inventario_total, inventario_total),
+        caracteristicas = IFNULL(p_caracteristicas, caracteristicas)
+    WHERE film_id = p_film_id;
+
+    RETURN TRUE;
+END;
+//
+
+DELIMITER ;
+
+// Actualizar rentas
+
+DELIMITER //
+
+CREATE FUNCTION actualizar_renta(
+    p_rental_id INT,
+    p_rental_date DATETIME,
+    p_return_date DATETIME
+)
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    UPDATE renta SET
+        rental_date = IFNULL(p_rental_date, rental_date),
+        return_date = IFNULL(p_return_date, return_date)
+    WHERE rental_id = p_rental_id;
+
+    RETURN TRUE;
+END;
+//
+
+DELIMITER ;
+
+// Actualizar clientes
+
+DELIMITER //
+
+CREATE FUNCTION actualizar_empleado(
+    p_staff_id INT,
+    p_first_name TEXT,
+    p_last_name TEXT,
+    p_email TEXT,
+    p_username TEXT
+)
+RETURNS BOOLEAN
+DETERMINISTIC
+BEGIN
+    UPDATE empleado SET
+        first_name = IFNULL(p_first_name, first_name),
+        last_name = IFNULL(p_last_name, last_name),
+        email = IFNULL(p_email, email),
+        username = IFNULL(p_username, username)
+    WHERE staff_id = p_staff_id;
+
+    RETURN TRUE;
+END;
+//
 
 DELIMITER ;

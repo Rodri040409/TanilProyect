@@ -106,6 +106,17 @@ export function updateTablas(tipo: string) {
         });
 }
 
+/**
+ * ✅ Función para mostrar una tarjeta en modo edición
+ */
+export function mostrarVistaEdicion(cardEdit: HTMLElement) {
+    const app = document.getElementById("app");
+    if (!app) return;
+
+    app.innerHTML = ""; // Ocultamos menú y todo
+    app.appendChild(cardEdit); // Mostramos solo la vista de edición
+}
+
 export function filtrarTablas(termino: string) {
     console.log(`🔍 Filtrando resultados con: "${termino}"`);
 

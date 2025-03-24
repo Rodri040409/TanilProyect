@@ -2,8 +2,8 @@ import mysql from "mysql2";
 
 // 🔹 Configuración de conexión a MySQL
 const connection = mysql.createConnection({
-    host: "192.168.56.101", // IP de la VM
-    user: "rodrigo",         // Usuario de MySQL
+    host: "localhost", // IP de la VM 192.168.56.101
+    user: "root",         // Usuario de MySQL rodrigo
     password: "root",        // Contraseña
     database: "sakila",      // Nombre de la BD
     port: 3306               // Puerto de MySQL

@@ -72,6 +72,13 @@ export function updateTablas(tipo) {
         document.body.classList.remove("glass-active");
     });
 }
+export function mostrarVistaEdicion(cardEdit) {
+    const app = document.getElementById("app");
+    if (!app)
+        return;
+    app.innerHTML = "";
+    app.appendChild(cardEdit);
+}
 export function filtrarTablas(termino) {
     console.log(`🔍 Filtrando resultados con: "${termino}"`);
     const tarjetas = document.querySelectorAll(".card");
